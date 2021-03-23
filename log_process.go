@@ -46,6 +46,7 @@ func (r *ReadFromFile) Read(rc chan []byte) {
 		if err == io.EOF {
 			time.Sleep(500 * time.Millisecond)
 			continue
+			//考虑读取到不同文件,此时inode会改变,要重新打开文件
 		} else if err != nil {
 			TypeMonitorChan <- TypeErrNum
 			panic(fmt.Sprintf("Readbyte error:%s", err.Error()))
@@ -293,8 +294,8 @@ func main() {
 	}
 
 	lp := &LogProcess{
-		rc: make(chan []byte),
-		wc: make(chan *Message),
+		rc: make(chan []byte, 200), //添加缓存
+		wc: make(chan *Message, 200),
 		//path:        "/tmp/access.log",
 		//influxDBDsn: "username&password..",
 		read:  r,
@@ -303,8 +304,13 @@ func main() {
 
 	go (*lp).read.Read(lp.rc) //lp就是(*lp),golang的编译器优化
 	// 接口的好处：约束了实现它的类的功能
-	go lp.Process()
-	go lp.write.Write(lp.wc)
+	//Process正则匹配慢,Write有Http请求最慢
+	for i := 0; i < 2; i++ {
+		go lp.Process()
+	}
+	for i := 0; i < 4; i++ {
+		go lp.write.Write(lp.wc)
+	}
 
 	m := &Monitor{startTime: time.Now(), data: SystemInfo{}}
 	m.start(lp)
