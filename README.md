@@ -17,7 +17,15 @@
 ## grafana
 [configure grafana](https://grafana.com/docs/grafana/latest/installation/debian/)
 
+`systemctl start grafana-server`
 
+browser
+localhost:3000 --> default username&password: admin admin
 
+set data source: influxdb
 
+create a panel --> done
+
+## monitor
+curl 127.0.0.1:9193/monitor
 
